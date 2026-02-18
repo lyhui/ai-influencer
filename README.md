@@ -6,7 +6,19 @@ This is a vibe-coding project using Google AI Studio to support part of my MPhil
 ## The web app for demonstration
 The public link: https://viralvault-896682388828.us-west1.run.app/
 
+This webapp mainly has three functions:
+1. Identify the viral reels in a specific industry within a region.
+   <div align ="left">
+   <img width="1200"  alt="Selections to identify viral reels in your industry" src="https://github.com/lyhui/ai-influencer/blob/main/pictures/Screenshot%202026-02-18%20132347.png" />
+   </div>
 
+3. Generated a relevant AI user profile based on your saved viral content in 1 and your preference in the persona.
+   <div align ="left">
+   <img width="1200" alt="Your selcections on AI influencer tone and characters" src="https://github.com/lyhui/ai-influencer/blob/main/pictures/Screenshot%202026-02-18%20132331.png" />
+   </div>
+5. Generated reels based on your selections in 1 and 2. 
+
+ 
 <div align="center">
 <img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
 </div>
