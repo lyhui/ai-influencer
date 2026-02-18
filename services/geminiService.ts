@@ -237,7 +237,7 @@ export const generateInfluencerVideo = async (profile: InfluencerProfile): Promi
     try {
         apiKey = process.env.API_KEY || '';
     } catch (e) {
-        console.warn("process.env is not defined");
+        console.warn("process.env is not defined, relying on auto-injection if available");
     }
 
     if (!apiKey) {
@@ -275,8 +275,8 @@ export const generateInfluencerVideo = async (profile: InfluencerProfile): Promi
     const downloadLink = operation.response?.generatedVideos?.[0]?.video?.uri;
     
     if (!downloadLink) {
-        console.error("Full operation response:", operation);
-        throw new Error("Video generation completed but no video URI was returned. Please try again.");
+        console.error("Full operation response:", JSON.stringify(operation, null, 2));
+        throw new Error("Video generation completed but no video URI was returned. This often means the content was filtered by safety settings.");
     }
 
     // Fetch the video bytes

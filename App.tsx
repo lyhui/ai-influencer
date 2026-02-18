@@ -33,7 +33,7 @@ const App: React.FC = () => {
   }, [savedInfluencers]);
 
   // Theme State
-  const [isDarkMode, setIsDarkMode] = useState(true);
+  const [isDarkMode, setIsDarkMode] = useState(false);
 
   // Apply theme class to HTML element
   useEffect(() => {
