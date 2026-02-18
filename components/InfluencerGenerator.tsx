@@ -100,12 +100,28 @@ const InfluencerGenerator: React.FC<InfluencerGeneratorProps> = ({ savedPosts, o
             setVideoUrl(url);
             setShowVideo(true);
             setIsSaved(false); // Reset save state so user can save the profile with the new video
-        } else {
-            alert("Video generation failed. Please try again.");
         }
-    } catch (error) {
+    } catch (error: any) {
         console.error("Video Gen Error", error);
-        alert("An error occurred while generating the video.");
+        
+        const errorMessage = error.message || error.toString();
+        
+        // Handle specific error for invalid/missing paid key
+        if (errorMessage.includes("Requested entity was not found")) {
+             const win = window as any;
+             if (win.aistudio) {
+                 try {
+                     await win.aistudio.openSelectKey();
+                 } catch(e) {
+                     console.error("Failed to re-open select key", e);
+                 }
+                 alert("The selected API key may not be associated with a paid project. Please select a valid paid key and try again.");
+                 setGeneratingVideo(false);
+                 return;
+             }
+        }
+
+        alert(`Video generation failed: ${errorMessage}`);
     } finally {
         setGeneratingVideo(false);
     }

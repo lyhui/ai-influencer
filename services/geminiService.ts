@@ -1,11 +1,6 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { ViralPost, Platform, InfluencerOptions, InfluencerProfile } from "../types";
 
-// Ensure API Key exists
-const API_KEY = process.env.API_KEY || '';
-
-const ai = new GoogleGenAI({ apiKey: API_KEY });
-
 const isValidVideoUrl = (url: string): boolean => {
   if (!url) return false;
   try {
@@ -40,11 +35,13 @@ const isValidVideoUrl = (url: string): boolean => {
 };
 
 export const generateViralPosts = async (industry: string, region: string, language: string, minShares: number): Promise<ViralPost[]> => {
-  if (!API_KEY) {
+  const apiKey = process.env.API_KEY;
+  if (!apiKey) {
     console.error("API Key is missing");
     return [];
   }
 
+  const ai = new GoogleGenAI({ apiKey });
   const modelId = "gemini-3-flash-preview";
   
   const prompt = `
@@ -122,8 +119,10 @@ export const generateViralPosts = async (industry: string, region: string, langu
 };
 
 export const analyzeCompetitorViralStrategy = async (industry: string, region: string, language: string): Promise<string> => {
-   if (!API_KEY) return "API Key missing.";
+   const apiKey = process.env.API_KEY;
+   if (!apiKey) return "API Key missing.";
    
+   const ai = new GoogleGenAI({ apiKey });
    const modelId = "gemini-3-flash-preview";
    const prompt = `Analyze the current state of viral content in the ${industry} industry within the ${region} region. 
    What specific formats (e.g., Green Screen, POV, Lists) are getting over 100k shares right now? 
@@ -141,9 +140,11 @@ export const analyzeCompetitorViralStrategy = async (industry: string, region: s
 }
 
 export const generateAIInfluencer = async (savedPosts: ViralPost[], options: InfluencerOptions): Promise<InfluencerProfile | null> => {
-  if (!API_KEY) return null;
+  const apiKey = process.env.API_KEY;
+  if (!apiKey) return null;
   if (savedPosts.length === 0) return null;
 
+  const ai = new GoogleGenAI({ apiKey });
   const modelId = "gemini-3-flash-preview";
   
   // 1. Generate the textual profile
@@ -229,9 +230,13 @@ export const generateAIInfluencer = async (savedPosts: ViralPost[], options: Inf
   }
 };
 
-export const generateInfluencerVideo = async (profile: InfluencerProfile): Promise<string | null> => {
+export const generateInfluencerVideo = async (profile: InfluencerProfile): Promise<string> => {
     // IMPORTANT: Create a new instance to grab the latest Key from window selection if available
-    const freshAi = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+    const apiKey = process.env.API_KEY || '';
+    if (!apiKey) {
+        throw new Error("API Key is missing. Please select a paid API Key.");
+    }
+    const freshAi = new GoogleGenAI({ apiKey });
 
     const prompt = `A cinematic, high-quality social media video of an influencer named ${profile.name}. 
     Visuals: ${profile.visualDescription}. 
@@ -239,36 +244,36 @@ export const generateInfluencerVideo = async (profile: InfluencerProfile): Promi
     Style: Trending social media aesthetic for ${profile.platform || 'social media'}, bright lighting, high resolution, 4k. 
     Context: They are about to deliver a viral hook based on this strategy: ${profile.strategy}`;
 
-    try {
-        let operation = await freshAi.models.generateVideos({
-            model: 'veo-3.1-fast-generate-preview',
-            prompt: prompt,
-            config: {
-                numberOfVideos: 1,
-                resolution: '720p',
-                aspectRatio: '9:16'
-            }
-        });
-
-        // Poll for completion
-        while (!operation.done) {
-            await new Promise(resolve => setTimeout(resolve, 5000));
-            operation = await freshAi.operations.getVideosOperation({ operation: operation });
+    let operation = await freshAi.models.generateVideos({
+        model: 'veo-3.1-fast-generate-preview',
+        prompt: prompt,
+        config: {
+            numberOfVideos: 1,
+            resolution: '720p',
+            aspectRatio: '9:16'
         }
+    });
 
-        const downloadLink = operation.response?.generatedVideos?.[0]?.video?.uri;
-        
-        if (!downloadLink) return null;
-
-        // Fetch the video bytes
-        // The key must be appended to the URL as per documentation for download links
-        const videoResponse = await fetch(`${downloadLink}&key=${process.env.API_KEY}`);
-        const videoBlob = await videoResponse.blob();
-        
-        return URL.createObjectURL(videoBlob);
-
-    } catch (error) {
-        console.error("Error generating video:", error);
-        return null;
+    // Poll for completion
+    while (!operation.done) {
+        await new Promise(resolve => setTimeout(resolve, 5000));
+        operation = await freshAi.operations.getVideosOperation({ operation: operation });
     }
+
+    const downloadLink = operation.response?.generatedVideos?.[0]?.video?.uri;
+    
+    if (!downloadLink) {
+        throw new Error("Video generation completed but no video URI was returned.");
+    }
+
+    // Fetch the video bytes
+    // The key must be appended to the URL as per documentation for download links
+    const videoResponse = await fetch(`${downloadLink}&key=${apiKey}`);
+    
+    if (!videoResponse.ok) {
+         throw new Error(`Failed to download video: ${videoResponse.statusText}`);
+    }
+
+    const videoBlob = await videoResponse.blob();
+    return URL.createObjectURL(videoBlob);
 };
