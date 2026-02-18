@@ -1,21 +1,30 @@
 import React, { useState, useEffect } from 'react';
-import { User, Users, Wand2, Sparkles, Loader2, CheckSquare, Square, AlertCircle, Clock, Video, Play, Smartphone, Download, Save, Check, X } from 'lucide-react';
+import { User, Users, Wand2, Sparkles, Loader2, CheckSquare, Square, AlertCircle, Clock, Video, Play, Smartphone, Download, Save, Check, X, Key } from 'lucide-react';
 import { ViralPost, InfluencerOptions, InfluencerProfile } from '../types';
 import { generateAIInfluencer, generateInfluencerVideo } from '../services/geminiService';
 
 interface InfluencerGeneratorProps {
   savedPosts: ViralPost[];
   onSaveProfile?: (profile: InfluencerProfile) => void;
+  draftProfile: InfluencerProfile | null;
+  setDraftProfile: (profile: InfluencerProfile | null) => void;
+  draftVideoUrl: string | null;
+  setDraftVideoUrl: (url: string | null) => void;
 }
 
-const InfluencerGenerator: React.FC<InfluencerGeneratorProps> = ({ savedPosts, onSaveProfile }) => {
+const InfluencerGenerator: React.FC<InfluencerGeneratorProps> = ({ 
+    savedPosts, 
+    onSaveProfile,
+    draftProfile,
+    setDraftProfile,
+    draftVideoUrl,
+    setDraftVideoUrl
+}) => {
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<InfluencerProfile | null>(null);
   const [isSaved, setIsSaved] = useState(false);
   
   // Video Generation State
   const [generatingVideo, setGeneratingVideo] = useState(false);
-  const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [showVideo, setShowVideo] = useState(true);
   
   // State to track which saved posts are selected for generation
@@ -53,14 +62,14 @@ const InfluencerGenerator: React.FC<InfluencerGeneratorProps> = ({ savedPosts, o
     if (postsToUse.length === 0) return;
 
     setLoading(true);
-    setResult(null);
-    setVideoUrl(null);
+    setDraftProfile(null);
+    setDraftVideoUrl(null);
     setIsSaved(false);
     setShowVideo(false);
     
     try {
       const profile = await generateAIInfluencer(postsToUse, formData);
-      setResult(profile);
+      setDraftProfile(profile);
     } catch (error) {
       console.error(error);
     } finally {
@@ -69,16 +78,29 @@ const InfluencerGenerator: React.FC<InfluencerGeneratorProps> = ({ savedPosts, o
   };
 
   const handleSaveProfile = () => {
-    if (result && onSaveProfile) {
+    if (draftProfile && onSaveProfile) {
         // Include the videoUrl if it exists
-        const profileToSave = { ...result, videoUrl: videoUrl || undefined };
+        const profileToSave = { ...draftProfile, videoUrl: draftVideoUrl || undefined };
         onSaveProfile(profileToSave);
         setIsSaved(true);
     }
   };
 
+  const handleUpdateKey = async () => {
+      const win = window as any;
+      if (win.aistudio) {
+          try {
+              await win.aistudio.openSelectKey();
+          } catch (e) {
+              console.error("Failed to open key selector", e);
+          }
+      } else {
+          alert("API Key selection is managed by the hosting environment.");
+      }
+  };
+
   const handleGenerateVideo = async () => {
-    if (!result) return;
+    if (!draftProfile) return;
 
     // Check for API Key Selection using window.aistudio as required for Veo
     try {
@@ -95,9 +117,9 @@ const InfluencerGenerator: React.FC<InfluencerGeneratorProps> = ({ savedPosts, o
 
     setGeneratingVideo(true);
     try {
-        const url = await generateInfluencerVideo(result);
+        const url = await generateInfluencerVideo(draftProfile);
         if (url) {
-            setVideoUrl(url);
+            setDraftVideoUrl(url);
             setShowVideo(true);
             setIsSaved(false); // Reset save state so user can save the profile with the new video
         }
@@ -107,7 +129,7 @@ const InfluencerGenerator: React.FC<InfluencerGeneratorProps> = ({ savedPosts, o
         const errorMessage = error.message || error.toString();
         
         // Handle specific error for invalid/missing paid key
-        if (errorMessage.includes("Requested entity was not found")) {
+        if (errorMessage.includes("Requested entity was not found") || errorMessage.includes("404")) {
              const win = window as any;
              if (win.aistudio) {
                  try {
@@ -147,6 +169,9 @@ const InfluencerGenerator: React.FC<InfluencerGeneratorProps> = ({ savedPosts, o
   }
 
   const selectedCount = selectedPostIds.size;
+  // Use the prop draftProfile as the source of truth for display
+  const result = draftProfile;
+  const videoUrl = draftVideoUrl;
 
   return (
     <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 pb-20">
@@ -460,8 +485,14 @@ const InfluencerGenerator: React.FC<InfluencerGeneratorProps> = ({ savedPosts, o
                                 )}
                             </button>
                          )}
-                         <p className="mt-2 text-xs text-center text-slate-400">
-                            *Requires a paid API key via AI Studio to generate video.
+                         <p className="mt-3 text-xs text-center text-slate-400 flex items-center justify-center gap-1">
+                            <span>*Requires a paid API key via AI Studio.</span>
+                            <button 
+                                onClick={handleUpdateKey} 
+                                className="text-brand-600 dark:text-brand-400 hover:underline inline-flex items-center gap-1 ml-1"
+                            >
+                                <Key size={10} /> Change Key
+                            </button>
                          </p>
                     </div>
                 </div>

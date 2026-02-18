@@ -32,6 +32,10 @@ const App: React.FC = () => {
     return saved ? JSON.parse(saved) : [];
   });
 
+  // Draft State for Influencer Generator (Persist across tab switches)
+  const [draftProfile, setDraftProfile] = useState<InfluencerProfile | null>(null);
+  const [draftVideoUrl, setDraftVideoUrl] = useState<string | null>(null);
+
   useEffect(() => {
     localStorage.setItem('savedInfluencers', JSON.stringify(savedInfluencers));
   }, [savedInfluencers]);
@@ -158,6 +162,10 @@ const App: React.FC = () => {
         <InfluencerGenerator 
             savedPosts={posts.filter(p => p.isSaved)} 
             onSaveProfile={saveInfluencerProfile}
+            draftProfile={draftProfile}
+            setDraftProfile={setDraftProfile}
+            draftVideoUrl={draftVideoUrl}
+            setDraftVideoUrl={setDraftVideoUrl}
         />
       );
     }
@@ -348,6 +356,7 @@ const App: React.FC = () => {
                     className="block w-full pl-9 pr-8 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl leading-5 text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500/50 focus:border-brand-500 transition-all appearance-none cursor-pointer shadow-sm text-sm"
                   >
                     <option value={1000}>1k+ Shares</option>
+                    <option value={5000}>5k+ Shares</option>
                     <option value={10000}>10k+ Shares</option>
                     <option value={50000}>50k+ Shares</option>
                     <option value={100000}>100k+ Shares</option>

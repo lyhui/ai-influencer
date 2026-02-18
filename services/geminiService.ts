@@ -253,11 +253,12 @@ export const generateInfluencerVideo = async (profile: InfluencerProfile): Promi
     }
     const freshAi = new GoogleGenAI({ apiKey });
 
-    const prompt = `A cinematic, high-quality social media video of an influencer named ${profile.name}. 
+    // SIMPLIFIED PROMPT: Removes potential PII triggers (specific names) and focuses on visual description
+    // This reduces the chance of safety filters blocking the output unnecessarily.
+    const prompt = `A cinematic, high-quality social media video of a content creator. 
     Visuals: ${profile.visualDescription}. 
-    Action: They are engaging with the camera, appearing charismatic and confident.
-    Style: Trending social media aesthetic for ${profile.platform || 'social media'}, bright lighting, high resolution, 4k. 
-    Context: They are about to deliver a viral hook based on this strategy: ${profile.strategy}`;
+    Action: The creator is looking at the camera, engaging with the audience.
+    Style: High resolution, 4k, professional lighting.`;
 
     let operation = await freshAi.models.generateVideos({
         model: 'veo-3.1-fast-generate-preview',
@@ -283,6 +284,7 @@ export const generateInfluencerVideo = async (profile: InfluencerProfile): Promi
     const downloadLink = operation.response?.generatedVideos?.[0]?.video?.uri;
     
     if (!downloadLink) {
+        // Log the full operation to debug why it failed silently (likely safety ratings)
         console.error("Full operation response:", JSON.stringify(operation, null, 2));
         throw new Error("Video generation completed but no video URI was returned. This often means the content was filtered by safety settings.");
     }
