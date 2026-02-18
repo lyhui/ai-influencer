@@ -263,7 +263,7 @@ const App: React.FC = () => {
         toggleTheme={() => setIsDarkMode(!isDarkMode)} 
       />
       
-      <main className="lg:ml-64 min-h-screen p-4 lg:p-8 relative">
+      <main className="ml-16 md:ml-20 lg:ml-64 min-h-screen p-4 lg:p-8 relative">
         {/* Top Header Area */}
         <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6 mb-8">
           <div>

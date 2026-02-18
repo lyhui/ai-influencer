@@ -232,9 +232,16 @@ export const generateAIInfluencer = async (savedPosts: ViralPost[], options: Inf
 
 export const generateInfluencerVideo = async (profile: InfluencerProfile): Promise<string> => {
     // IMPORTANT: Create a new instance to grab the latest Key from window selection if available
-    const apiKey = process.env.API_KEY || '';
+    // Attempt to access process.env safely to prevent runtime crashes in some environments
+    let apiKey = '';
+    try {
+        apiKey = process.env.API_KEY || '';
+    } catch (e) {
+        console.warn("process.env is not defined");
+    }
+
     if (!apiKey) {
-        throw new Error("API Key is missing. Please select a paid API Key.");
+        throw new Error("API Key is missing. Please ensure you have selected a paid API Key.");
     }
     const freshAi = new GoogleGenAI({ apiKey });
 
@@ -258,20 +265,27 @@ export const generateInfluencerVideo = async (profile: InfluencerProfile): Promi
     while (!operation.done) {
         await new Promise(resolve => setTimeout(resolve, 5000));
         operation = await freshAi.operations.getVideosOperation({ operation: operation });
+        
+        // Check for server-side errors in the operation
+        if (operation.error) {
+            throw new Error(`Video generation server error: ${operation.error.message || 'Unknown error'}`);
+        }
     }
 
     const downloadLink = operation.response?.generatedVideos?.[0]?.video?.uri;
     
     if (!downloadLink) {
-        throw new Error("Video generation completed but no video URI was returned.");
+        console.error("Full operation response:", operation);
+        throw new Error("Video generation completed but no video URI was returned. Please try again.");
     }
 
     // Fetch the video bytes
-    // The key must be appended to the URL as per documentation for download links
-    const videoResponse = await fetch(`${downloadLink}&key=${apiKey}`);
+    // Determine the correct separator for the API key parameter
+    const separator = downloadLink.includes('?') ? '&' : '?';
+    const videoResponse = await fetch(`${downloadLink}${separator}key=${apiKey}`);
     
     if (!videoResponse.ok) {
-         throw new Error(`Failed to download video: ${videoResponse.statusText}`);
+         throw new Error(`Failed to download video bytes: ${videoResponse.status} ${videoResponse.statusText}`);
     }
 
     const videoBlob = await videoResponse.blob();
