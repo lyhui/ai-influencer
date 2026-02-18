@@ -1,40 +1,41 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { ViralPost, Platform, InfluencerOptions, InfluencerProfile } from "../types";
 
-const isValidVideoUrl = (url: string): boolean => {
+const isValidUrlForPlatform = (url: string, platform: Platform): boolean => {
   if (!url) return false;
   try {
     const parsed = new URL(url);
     const hostname = parsed.hostname.toLowerCase();
     const pathname = parsed.pathname;
 
-    // YouTube: Must be a specific video or short
-    if (hostname.includes('youtube.com') || hostname.includes('youtu.be')) {
-      return (
-        pathname.includes('/shorts/') || 
-        pathname.includes('/watch') || 
-        (hostname.includes('youtu.be') && pathname.length > 2) // direct short link
-      );
+    switch (platform) {
+        case Platform.YouTube:
+        case Platform.YouTubeShorts:
+            if (hostname.includes('youtube.com') || hostname.includes('youtu.be')) {
+                 return (
+                    pathname.includes('/shorts/') || 
+                    pathname.includes('/watch') || 
+                    (hostname.includes('youtu.be') && pathname.length > 2)
+                 );
+            }
+            return false;
+        case Platform.Instagram:
+            return (hostname.includes('instagram.com') && (pathname.includes('/reel/') || pathname.includes('/p/')));
+        case Platform.TikTok:
+            return (hostname.includes('tiktok.com') && pathname.includes('/video/'));
+        case Platform.LinkedIn:
+            return hostname.includes('linkedin.com');
+        case Platform.Twitter:
+            return hostname.includes('twitter.com') || hostname.includes('x.com');
+        default:
+            return true;
     }
-
-    // Instagram: Must be a reel or post (posts are often videos in this context)
-    if (hostname.includes('instagram.com')) {
-      return pathname.includes('/reel/') || pathname.includes('/p/');
-    }
-
-    // TikTok: Must be a specific video
-    if (hostname.includes('tiktok.com')) {
-      return pathname.includes('/video/');
-    }
-    
-    // If it doesn't match a known video pattern, discard it
-    return false;
   } catch (e) {
     return false;
   }
 };
 
-export const generateViralPosts = async (industry: string, region: string, language: string, minShares: number): Promise<ViralPost[]> => {
+export const generateViralPosts = async (industry: string, region: string, language: string, minShares: number, platforms: Platform[]): Promise<ViralPost[]> => {
   const apiKey = process.env.API_KEY;
   if (!apiKey) {
     console.error("API Key is missing");
@@ -44,6 +45,8 @@ export const generateViralPosts = async (industry: string, region: string, langu
   const ai = new GoogleGenAI({ apiKey });
   const modelId = "gemini-3-flash-preview";
   
+  const platformString = platforms.length > 0 ? platforms.join(", ") : "Social Media";
+
   const prompt = `
     Generate a database of 6 highly viral social media post concepts specifically for the "${industry}" industry targeting the "${region}" region.
     
@@ -51,19 +54,19 @@ export const generateViralPosts = async (industry: string, region: string, langu
     
     CRITICAL CRITERIA:
     1. Each post must theoretically achieve at least ${minShares.toLocaleString()} shares within 3 days of publishing.
-    2. Focus strictly on VIDEO formats: "Reels", "TikToks", "YouTube Shorts".
+    2. Focus strictly on these selected platforms: ${platformString}.
     3. The "hook" must be extremely compelling.
     4. Provide a psychological trigger explaining WHY it goes viral.
     5. The 'shares' value must be a number greater than ${minShares}.
     6. 'daysActive' should be exactly 3.
     7. Provide a 'sourceHandle' (e.g. @famouscreator) and their estimated 'sourceFollowers' (e.g. "2.5M", "500k").
-    8. MANDATORY STRICT VIDEO LINK & AVAILABILITY CHECK: 
-       - Provide a 'sourceLink' that is a VALID, WORKING URL to a specific VIDEO (not a profile).
-       - Check the video whether it is available. If not, start searching for the next one and do not include it in the result.
-       - It MUST be a YouTube Short, Instagram Reel, or TikTok Video.
+    8. MANDATORY STRICT SOURCE LINK & AVAILABILITY CHECK: 
+       - Provide a 'sourceLink' that is a VALID, WORKING URL to a specific Post/Video (not a profile).
+       - It MUST match one of the requested platforms: ${platformString}.
+       - If it is a video platform (TikTok, Reels, Shorts), it must be a video link.
        - Do not use generic profile links.
        - Do not use fake or placeholder URLs.
-       - If you cannot find a real, available video example, SKIP this concept entirely and find another one.
+       - If you cannot find a real, available example, SKIP this concept entirely and find another one.
   `;
 
   try {
@@ -92,7 +95,7 @@ export const generateViralPosts = async (industry: string, region: string, langu
               tags: { type: Type.ARRAY, items: { type: Type.STRING } },
               sourceHandle: { type: Type.STRING, description: "The handle of the creator" },
               sourceFollowers: { type: Type.STRING, description: "Estimated follower count (e.g. 1.2M, 500k)" },
-              sourceLink: { type: Type.STRING, description: "A full URL to the specific video (Reel/TikTok/Short)" }
+              sourceLink: { type: Type.STRING, description: "A full URL to the specific post/video" }
             },
             required: ["title", "industry", "region", "platform", "shares", "daysActive", "hook", "contentDescription", "psychologicalTrigger", "engagementScore", "estimatedReach", "tags", "sourceHandle", "sourceFollowers", "sourceLink"]
           }
@@ -102,10 +105,15 @@ export const generateViralPosts = async (industry: string, region: string, langu
 
     const data = JSON.parse(response.text || "[]");
     
-    // Strict Client-Side Filtering
-    // Only return items with valid VIDEO URLs
+    // Strict Client-Side Filtering matching the selected platforms and their valid URL patterns
     return data
-      .filter((item: any) => isValidVideoUrl(item.sourceLink))
+      .filter((item: any) => {
+          // Must be one of the selected platforms
+          const matchesPlatform = platforms.includes(item.platform as Platform);
+          // Must have a valid URL for that platform
+          const validUrl = isValidUrlForPlatform(item.sourceLink, item.platform as Platform);
+          return matchesPlatform && validUrl;
+      })
       .map((item: any, index: number) => ({
         ...item,
         id: `${Date.now()}-${index}`,

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Filter, Sparkles, RefreshCw, Database, Globe, Languages, BarChart3, LayoutGrid, List, Download } from 'lucide-react';
+import { Search, Filter, Sparkles, RefreshCw, Database, Globe, Languages, BarChart3, LayoutGrid, List, Download, ChevronDown, Check, PlayCircle } from 'lucide-react';
 import Sidebar from './components/Sidebar';
 import ViralPostCard from './components/ViralPostCard';
 import ViralPostTable from './components/ViralPostTable';
@@ -7,7 +7,7 @@ import StatCard from './components/StatCard';
 import { GridSkeleton, TableSkeleton } from './components/LoadingSkeleton';
 import InfluencerGenerator from './components/InfluencerGenerator';
 import SettingsView from './components/SettingsView';
-import { ViralPost, InfluencerProfile } from './types';
+import { ViralPost, InfluencerProfile, Platform } from './types';
 import { generateViralPosts, analyzeCompetitorViralStrategy } from './services/geminiService';
 
 const App: React.FC = () => {
@@ -18,6 +18,10 @@ const App: React.FC = () => {
   const [minShares, setMinShares] = useState<number>(100000);
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
   
+  // Platform Selection State
+  const [selectedPlatforms, setSelectedPlatforms] = useState<Platform[]>([Platform.Instagram, Platform.TikTok, Platform.YouTubeShorts]);
+  const [showPlatformDropdown, setShowPlatformDropdown] = useState(false);
+
   const [posts, setPosts] = useState<ViralPost[]>([]);
   const [loading, setLoading] = useState(false);
   const [strategy, setStrategy] = useState<string | null>(null);
@@ -49,6 +53,16 @@ const App: React.FC = () => {
   const savedPostsCount = posts.filter(p => p.isSaved).length;
   const avgShares = posts.length > 0 ? (posts.reduce((acc, curr) => acc + curr.shares, 0) / posts.length).toFixed(0) : "0";
 
+  const togglePlatform = (platform: Platform) => {
+    if (selectedPlatforms.includes(platform)) {
+      if (selectedPlatforms.length > 1) {
+        setSelectedPlatforms(prev => prev.filter(p => p !== platform));
+      }
+    } else {
+      setSelectedPlatforms(prev => [...prev, platform]);
+    }
+  };
+
   const handleSearch = async () => {
     if (!industry.trim()) return;
     setLoading(true);
@@ -56,7 +70,7 @@ const App: React.FC = () => {
     try {
       // Parallel execution for analysis and content generation
       const [fetchedPosts, strategyText] = await Promise.all([
-        generateViralPosts(industry, region, language, minShares),
+        generateViralPosts(industry, region, language, minShares, selectedPlatforms),
         analyzeCompetitorViralStrategy(industry, region, language)
       ]);
       
@@ -286,6 +300,43 @@ const App: React.FC = () => {
           <div className="flex flex-col sm:flex-row gap-4 w-full xl:w-auto items-center">
             {currentView === 'discover' && (
               <>
+                {/* Platform Multi-Select */}
+                <div className="relative min-w-[160px] z-20">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <PlayCircle className="h-4 w-4 text-slate-500" />
+                  </div>
+                  <button
+                    onClick={() => setShowPlatformDropdown(!showPlatformDropdown)}
+                    className="w-full pl-9 pr-3 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl leading-5 text-left text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500/50 focus:border-brand-500 transition-all shadow-sm flex items-center justify-between gap-2"
+                  >
+                    <span className="truncate block text-sm">
+                       {selectedPlatforms.length === Object.values(Platform).length ? 'All Platforms' : `${selectedPlatforms.length} Platforms`}
+                    </span>
+                    <ChevronDown size={14} className="text-slate-500 shrink-0" />
+                  </button>
+                  
+                  {showPlatformDropdown && (
+                    <>
+                      <div 
+                        className="fixed inset-0 z-10" 
+                        onClick={() => setShowPlatformDropdown(false)} 
+                      />
+                      <div className="absolute top-full left-0 mt-2 w-56 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl z-20 overflow-hidden py-1 max-h-80 overflow-y-auto">
+                        {Object.values(Platform).map((p) => (
+                          <div 
+                            key={p}
+                            onClick={() => togglePlatform(p)}
+                            className="px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer flex items-center justify-between text-sm text-slate-700 dark:text-slate-200 transition-colors"
+                          >
+                            <span>{p}</span>
+                            {selectedPlatforms.includes(p) && <Check size={16} className="text-brand-500" />}
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
+
                 {/* Min Shares Selector */}
                 <div className="relative group min-w-[140px]">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -294,7 +345,7 @@ const App: React.FC = () => {
                   <select 
                     value={minShares}
                     onChange={(e) => setMinShares(Number(e.target.value))}
-                    className="block w-full pl-9 pr-8 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl leading-5 text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500/50 focus:border-brand-500 transition-all appearance-none cursor-pointer shadow-sm"
+                    className="block w-full pl-9 pr-8 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl leading-5 text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500/50 focus:border-brand-500 transition-all appearance-none cursor-pointer shadow-sm text-sm"
                   >
                     <option value={1000}>1k+ Shares</option>
                     <option value={10000}>10k+ Shares</option>
@@ -304,7 +355,7 @@ const App: React.FC = () => {
                     <option value={1000000}>1M+ Shares</option>
                   </select>
                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-500">
-                    <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+                    <ChevronDown className="h-4 w-4" />
                   </div>
                 </div>
 
@@ -316,7 +367,7 @@ const App: React.FC = () => {
                   <select 
                     value={language}
                     onChange={(e) => setLanguage(e.target.value)}
-                    className="block w-full pl-9 pr-8 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl leading-5 text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500/50 focus:border-brand-500 transition-all appearance-none cursor-pointer shadow-sm"
+                    className="block w-full pl-9 pr-8 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl leading-5 text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500/50 focus:border-brand-500 transition-all appearance-none cursor-pointer shadow-sm text-sm"
                   >
                     <option value="English">English</option>
                     <option value="Traditional Chinese">繁體中文</option>
@@ -326,7 +377,7 @@ const App: React.FC = () => {
                     <option value="French">French</option>
                   </select>
                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-500">
-                    <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+                    <ChevronDown className="h-4 w-4" />
                   </div>
                 </div>
 
@@ -338,7 +389,7 @@ const App: React.FC = () => {
                   <select 
                     value={region}
                     onChange={(e) => setRegion(e.target.value)}
-                    className="block w-full pl-9 pr-8 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl leading-5 text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500/50 focus:border-brand-500 transition-all appearance-none cursor-pointer shadow-sm"
+                    className="block w-full pl-9 pr-8 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl leading-5 text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500/50 focus:border-brand-500 transition-all appearance-none cursor-pointer shadow-sm text-sm"
                   >
                     <option value="United States">United States</option>
                     <option value="Global">Global</option>
@@ -350,7 +401,7 @@ const App: React.FC = () => {
                     <option value="Brazil">Brazil</option>
                   </select>
                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-500">
-                    <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+                    <ChevronDown className="h-4 w-4" />
                   </div>
                 </div>
 
@@ -361,7 +412,7 @@ const App: React.FC = () => {
                   </div>
                   <input
                     type="text"
-                    className="block w-full pl-10 pr-3 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl leading-5 text-slate-700 dark:text-slate-300 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-brand-500/50 focus:border-brand-500 transition-all shadow-sm"
+                    className="block w-full pl-10 pr-3 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl leading-5 text-slate-700 dark:text-slate-300 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-brand-500/50 focus:border-brand-500 transition-all shadow-sm text-sm"
                     placeholder="Industry (e.g., Crypto)"
                     value={industry}
                     onChange={(e) => setIndustry(e.target.value)}
