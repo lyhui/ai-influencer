@@ -301,7 +301,7 @@ const App: React.FC = () => {
                 ? 'Create the perfect personality to execute your viral strategy.'
                 : currentView === 'settings'
                 ? 'Manage your preferences and saved profiles.'
-                : 'Identify trends with >100k shares potential.'}
+                : ''}
             </p>
           </div>
 
