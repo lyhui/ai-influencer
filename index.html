@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="h-full">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -41,8 +41,6 @@
       
       body {
         font-family: 'Inter', sans-serif;
-        background-color: #0f172a;
-        color: #f8fafc;
       }
 
       /* Custom Scrollbar */
@@ -72,7 +70,8 @@
 }
 </script>
 </head>
-  <body>
-    <div id="root"></div>
-  </body>
+  <body class="h-full bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-300">
+    <div id="root" class="h-full"></div>
+  <script type="module" src="/index.tsx"></script>
+</body>
 </html>

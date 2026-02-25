@@ -7,6 +7,19 @@ export enum Platform {
   YouTube = 'YouTube'
 }
 
+export enum ContentType {
+  Video = 'Video',
+  Image = 'Image'
+}
+
+export enum DatePeriod {
+  Last24h = 'Last 24 hours',
+  Last7d = 'Last 7 days',
+  Last30d = 'Last 30 days',
+  Last90d = 'Last 90 days',
+  AllTime = 'All Time'
+}
+
 export interface ViralPost {
   id: string;
   title: string;
@@ -33,6 +46,13 @@ export interface SearchFilters {
   minShares: number;
 }
 
+export enum GenerationType {
+  ViralReels = 'Viral Reels (9:16)',
+  Video16_9 = 'Video (16:9)',
+  Picture = 'Picture',
+  ScriptsAndPrompts = 'Scripts & Prompts'
+}
+
 export interface InfluencerOptions {
   age: string;
   sex: string;
@@ -42,6 +62,7 @@ export interface InfluencerOptions {
   expectedReach: string;
   contentDuration: string;
   platform: string; // Added platform selection
+  generationType: GenerationType;
 }
 
 export interface InfluencerProfile {
@@ -54,4 +75,5 @@ export interface InfluencerProfile {
   imageUrl?: string;
   videoUrl?: string;
   platform?: string; // To track which platform this profile was built for
+  scripts?: string; // Added for scripts & prompts generation
 }

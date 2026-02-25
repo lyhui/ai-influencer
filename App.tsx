@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Filter, Sparkles, RefreshCw, Database, Globe, Languages, BarChart3, LayoutGrid, List, Download, ChevronDown, Check, PlayCircle } from 'lucide-react';
+import { Search, Filter, Sparkles, RefreshCw, Database, Globe, Languages, BarChart3, LayoutGrid, List, Download, ChevronDown, Check, PlayCircle, Clock } from 'lucide-react';
 import Sidebar from './components/Sidebar';
 import ViralPostCard from './components/ViralPostCard';
 import ViralPostTable from './components/ViralPostTable';
@@ -7,7 +7,7 @@ import StatCard from './components/StatCard';
 import { GridSkeleton, TableSkeleton } from './components/LoadingSkeleton';
 import InfluencerGenerator from './components/InfluencerGenerator';
 import SettingsView from './components/SettingsView';
-import { ViralPost, InfluencerProfile, Platform } from './types';
+import { ViralPost, InfluencerProfile, Platform, ContentType, DatePeriod } from './types';
 import { generateViralPosts, analyzeCompetitorViralStrategy } from './services/geminiService';
 
 const App: React.FC = () => {
@@ -16,6 +16,8 @@ const App: React.FC = () => {
   const [region, setRegion] = useState('United States');
   const [language, setLanguage] = useState('English');
   const [minShares, setMinShares] = useState<number>(100000);
+  const [contentType, setContentType] = useState<ContentType>(ContentType.Video);
+  const [datePeriod, setDatePeriod] = useState<DatePeriod>(DatePeriod.AllTime);
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
   
   // Platform Selection State
@@ -74,7 +76,7 @@ const App: React.FC = () => {
     try {
       // Parallel execution for analysis and content generation
       const [fetchedPosts, strategyText] = await Promise.all([
-        generateViralPosts(industry, region, language, minShares, selectedPlatforms),
+        generateViralPosts(industry, region, language, minShares, selectedPlatforms, contentType, datePeriod),
         analyzeCompetitorViralStrategy(industry, region, language)
       ]);
       
@@ -384,6 +386,44 @@ const App: React.FC = () => {
                     <option value="Japanese">日本語</option>
                     <option value="Spanish">Spanish</option>
                     <option value="French">French</option>
+                  </select>
+                   <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-500">
+                    <ChevronDown className="h-4 w-4" />
+                  </div>
+                </div>
+
+                {/* Content Type Selector */}
+                <div className="relative group min-w-[140px]">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <LayoutGrid className="h-4 w-4 text-slate-500" />
+                  </div>
+                  <select 
+                    value={contentType}
+                    onChange={(e) => setContentType(e.target.value as ContentType)}
+                    className="block w-full pl-9 pr-8 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl leading-5 text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500/50 focus:border-brand-500 transition-all appearance-none cursor-pointer shadow-sm text-sm"
+                  >
+                    {Object.values(ContentType).map(type => (
+                      <option key={type} value={type}>{type}</option>
+                    ))}
+                  </select>
+                   <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-500">
+                    <ChevronDown className="h-4 w-4" />
+                  </div>
+                </div>
+
+                {/* Date Period Selector */}
+                <div className="relative group min-w-[160px]">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Clock className="h-4 w-4 text-slate-500" />
+                  </div>
+                  <select 
+                    value={datePeriod}
+                    onChange={(e) => setDatePeriod(e.target.value as DatePeriod)}
+                    className="block w-full pl-9 pr-8 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl leading-5 text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500/50 focus:border-brand-500 transition-all appearance-none cursor-pointer shadow-sm text-sm"
+                  >
+                    {Object.values(DatePeriod).map(period => (
+                      <option key={period} value={period}>{period}</option>
+                    ))}
                   </select>
                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-500">
                     <ChevronDown className="h-4 w-4" />

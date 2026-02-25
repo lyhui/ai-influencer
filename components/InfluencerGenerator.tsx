@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { User, Users, Wand2, Sparkles, Loader2, CheckSquare, Square, AlertCircle, Clock, Video, Play, Smartphone, Download, Save, Check, X, Key } from 'lucide-react';
-import { ViralPost, InfluencerOptions, InfluencerProfile } from '../types';
+import { ViralPost, InfluencerOptions, InfluencerProfile, GenerationType } from '../types';
 import { generateAIInfluencer, generateInfluencerVideo } from '../services/geminiService';
 
 interface InfluencerGeneratorProps {
@@ -44,7 +44,8 @@ const InfluencerGenerator: React.FC<InfluencerGeneratorProps> = ({
     language: 'English',
     expectedReach: '100k - 500k',
     contentDuration: '30 Seconds',
-    platform: 'Instagram'
+    platform: 'Instagram',
+    generationType: GenerationType.ViralReels
   });
 
   const togglePostSelection = (id: string) => {
@@ -117,7 +118,8 @@ const InfluencerGenerator: React.FC<InfluencerGeneratorProps> = ({
 
     setGeneratingVideo(true);
     try {
-        const url = await generateInfluencerVideo(draftProfile);
+        const aspectRatio = formData.generationType === GenerationType.Video16_9 ? '16:9' : '9:16';
+        const url = await generateInfluencerVideo(draftProfile, aspectRatio);
         if (url) {
             setDraftVideoUrl(url);
             setShowVideo(true);
@@ -237,6 +239,23 @@ const InfluencerGenerator: React.FC<InfluencerGeneratorProps> = ({
             </div>
 
             <div className="space-y-4">
+                <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase flex items-center gap-1">
+                         <Sparkles size={12} />
+                         Generation Type
+                    </label>
+                    <select 
+                        name="generationType"
+                        value={formData.generationType}
+                        onChange={handleChange}
+                        className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-2.5 text-slate-900 dark:text-white focus:outline-none focus:border-brand-500 transition-colors"
+                    >
+                        {Object.values(GenerationType).map(type => (
+                            <option key={type} value={type}>{type}</option>
+                        ))}
+                    </select>
+                </div>
+
                 <div className="space-y-1.5">
                     <label className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase flex items-center gap-1">
                          <Smartphone size={12} />
@@ -447,6 +466,15 @@ const InfluencerGenerator: React.FC<InfluencerGeneratorProps> = ({
                         <p className="text-slate-600 dark:text-slate-300 leading-relaxed">{result.strategy}</p>
                     </div>
 
+                    {result.scripts && (
+                        <div>
+                            <h4 className="text-sm font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">Scripts & Prompts</h4>
+                            <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-200 dark:border-slate-700/50">
+                                <p className="text-slate-600 dark:text-slate-300 whitespace-pre-wrap text-sm">{result.scripts}</p>
+                            </div>
+                        </div>
+                    )}
+
                     <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
                          {videoUrl ? (
                             <div className="space-y-3">
@@ -457,7 +485,7 @@ const InfluencerGenerator: React.FC<InfluencerGeneratorProps> = ({
                                         <p className="text-xs text-green-700 dark:text-green-500">Preview available above.</p>
                                     </div>
                                 </div>
-                                <a 
+                                 <a 
                                     href={videoUrl} 
                                     download={`${result.name.replace(/\s+/g, '_')}_reel.mp4`}
                                     className="w-full py-3 bg-brand-600 hover:bg-brand-500 text-white font-bold rounded-xl transition-colors flex items-center justify-center gap-2 shadow-lg shadow-brand-500/20"
@@ -465,8 +493,11 @@ const InfluencerGenerator: React.FC<InfluencerGeneratorProps> = ({
                                     <Download size={20} />
                                     Download {formData.contentDuration} Video
                                 </a>
+                                <p className="text-[10px] text-center text-slate-400 mt-1">
+                                    For demonstration purposes only. Need paid API for downloading the generated video(s).
+                                </p>
                             </div>
-                         ) : (
+                         ) : (formData.generationType === GenerationType.ViralReels || formData.generationType === GenerationType.Video16_9) ? (
                             <button
                                 onClick={handleGenerateVideo}
                                 disabled={generatingVideo}
@@ -484,7 +515,16 @@ const InfluencerGenerator: React.FC<InfluencerGeneratorProps> = ({
                                     </>
                                 )}
                             </button>
-                         )}
+                         ) : formData.generationType === GenerationType.Picture && result.imageUrl ? (
+                            <a 
+                                href={result.imageUrl} 
+                                download={`${result.name.replace(/\s+/g, '_')}_profile.png`}
+                                className="w-full py-3 bg-brand-600 hover:bg-brand-500 text-white font-bold rounded-xl transition-colors flex items-center justify-center gap-2 shadow-lg shadow-brand-500/20"
+                            >
+                                <Download size={20} />
+                                Download Profile Picture
+                            </a>
+                         ) : null}
                          <p className="mt-3 text-xs text-center text-slate-400 flex items-center justify-center gap-1">
                             <span>*Requires a paid API key via AI Studio.</span>
                             <button 

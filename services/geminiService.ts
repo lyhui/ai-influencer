@@ -1,5 +1,5 @@
 import { GoogleGenAI, Type } from "@google/genai";
-import { ViralPost, Platform, InfluencerOptions, InfluencerProfile } from "../types";
+import { ViralPost, Platform, InfluencerOptions, InfluencerProfile, ContentType, DatePeriod, GenerationType } from "../types";
 
 const isValidUrlForPlatform = (url: string, platform: Platform): boolean => {
   if (!url) return false;
@@ -35,7 +35,15 @@ const isValidUrlForPlatform = (url: string, platform: Platform): boolean => {
   }
 };
 
-export const generateViralPosts = async (industry: string, region: string, language: string, minShares: number, platforms: Platform[]): Promise<ViralPost[]> => {
+export const generateViralPosts = async (
+  industry: string, 
+  region: string, 
+  language: string, 
+  minShares: number, 
+  platforms: Platform[],
+  contentType: ContentType = ContentType.Video,
+  datePeriod: DatePeriod = DatePeriod.AllTime
+): Promise<ViralPost[]> => {
   const apiKey = process.env.API_KEY;
   if (!apiKey) {
     console.error("API Key is missing");
@@ -50,20 +58,26 @@ export const generateViralPosts = async (industry: string, region: string, langu
   const prompt = `
     Generate a database of 6 highly viral social media post concepts specifically for the "${industry}" industry targeting the "${region}" region.
     
+    CONTENT TYPE: ${contentType}
+    DATE PERIOD: ${datePeriod}
+
     IMPORTANT: The content (Title, Hook, Description, Psychological Trigger) MUST be written in ${language}.
     
     CRITICAL CRITERIA:
     1. Each post must theoretically achieve at least ${minShares.toLocaleString()} shares within 3 days of publishing.
     2. Focus strictly on these selected platforms: ${platformString}.
-    3. The "hook" must be extremely compelling.
-    4. Provide a psychological trigger explaining WHY it goes viral.
-    5. The 'shares' value must be a number greater than ${minShares}.
-    6. 'daysActive' should be exactly 3.
-    7. Provide a 'sourceHandle' (e.g. @famouscreator) and their estimated 'sourceFollowers' (e.g. "2.5M", "500k").
-    8. MANDATORY STRICT SOURCE LINK & AVAILABILITY CHECK: 
+    3. The content must be of type: ${contentType}.
+    4. The posts should have been published within the period: ${datePeriod}.
+    5. The "hook" must be extremely compelling.
+    6. Provide a psychological trigger explaining WHY it goes viral.
+    7. The 'shares' value must be a number greater than ${minShares}.
+    8. 'daysActive' should be exactly 3.
+    9. Provide a 'sourceHandle' (e.g. @famouscreator) and their estimated 'sourceFollowers' (e.g. "2.5M", "500k").
+    10. MANDATORY STRICT SOURCE LINK & AVAILABILITY CHECK: 
        - Provide a 'sourceLink' that is a VALID, WORKING URL to a specific Post/Video (not a profile).
        - It MUST match one of the requested platforms: ${platformString}.
-       - If it is a video platform (TikTok, Reels, Shorts), it must be a video link.
+       - If it is a video platform (TikTok, Reels, Shorts), it must be a video link if contentType is Video.
+       - If contentType is Image, it must be an image post link.
        - Do not use generic profile links.
        - Do not use fake or placeholder URLs.
        - If you cannot find a real, available example, SKIP this concept entirely and find another one.
@@ -171,12 +185,14 @@ export const generateAIInfluencer = async (savedPosts: ViralPost[], options: Inf
     - Expected Reach: ${options.expectedReach}
     - Preferred Content Duration: ${options.contentDuration}
     - Target Platform: ${options.platform}
+    - Generation Type: ${options.generationType}
 
     Output JSON with:
     - name: A catchy name for the influencer.
     - bio: A short social media bio (max 150 chars).
-    - strategy: A brief strategy on how they will dominate the ${options.platform} niche, SPECIFICALLY tailoring the content to be ${options.contentDuration} long (e.g. if 15s, focus on loops/trends; if 3 mins, focus on storytelling).
+    - strategy: A brief strategy on how they will dominate the ${options.platform} niche, SPECIFICALLY tailoring the content to be ${options.contentDuration} long.
     - visualDescription: A highly detailed, photorealistic prompt to generate an image of this person. Include lighting, camera angle, clothing style, and background.
+    - scripts: ${options.generationType === GenerationType.ScriptsAndPrompts ? 'MANDATORY: Provide 3 viral script concepts and image/video generation prompts for them.' : 'Optional: Any additional scripts or prompts.'}
   `;
 
   try {
@@ -192,6 +208,7 @@ export const generateAIInfluencer = async (savedPosts: ViralPost[], options: Inf
             bio: { type: Type.STRING },
             strategy: { type: Type.STRING },
             visualDescription: { type: Type.STRING },
+            scripts: { type: Type.STRING },
           },
           required: ["name", "bio", "strategy", "visualDescription"]
         }
@@ -238,7 +255,7 @@ export const generateAIInfluencer = async (savedPosts: ViralPost[], options: Inf
   }
 };
 
-export const generateInfluencerVideo = async (profile: InfluencerProfile): Promise<string> => {
+export const generateInfluencerVideo = async (profile: InfluencerProfile, aspectRatio: '9:16' | '16:9' = '9:16'): Promise<string> => {
     // IMPORTANT: Create a new instance to grab the latest Key from window selection if available
     // Attempt to access process.env safely to prevent runtime crashes in some environments
     let apiKey = '';
@@ -266,7 +283,7 @@ export const generateInfluencerVideo = async (profile: InfluencerProfile): Promi
         config: {
             numberOfVideos: 1,
             resolution: '720p',
-            aspectRatio: '9:16'
+            aspectRatio: aspectRatio
         }
     });
 
