@@ -21,9 +21,9 @@ This webapp mainly has three functions:
    </div>
 4. Generated reels based on your selections in 1 and 2.
    Sample reel: https://vimeo.com/1174319473?fl=pl&fe=sh
-
+<br>
 </br>
-
+---
 <div align="center">
 <img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
 </div>
