@@ -20,11 +20,8 @@ This webapp mainly has three functions:
    <img width="1200" alt="Your selcections on AI influencer tone and characters" src="https://github.com/lyhui/ai-influencer/blob/main/Screenshot%202026-03-17%20at%2017.12.36.png?raw=true" />
    </div>
 4. Generated reels based on your selections in 1 and 2.
-   
-<video src="https://github.com/lyhui/ai-influencer/raw/refs/heads/main/Chloe_Zen_(@ZenWithChloe)_reel.mp4" width="300"/>
+   Sample reel: https://vimeo.com/1174319473?fl=pl&fe=sh
 
-
-<br>
 </br>
 
 <div align="center">
